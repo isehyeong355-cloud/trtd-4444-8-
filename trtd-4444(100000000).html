@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRTD-4444: The Road To Death</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide-react/0.263.1/lucide-react.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --blood-red: #8b0000;
+            --deep-dark: #0a0a0a;
+            --train-grey: #2a2a2a;
+        }
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: var(--deep-dark);
+            color: #e0e0e0;
+            overflow-x: hidden;
+            margin: 0;
+        }
+        .blood-text { color: var(--blood-red); text-shadow: 0 0 5px rgba(139, 0, 0, 0.7); }
+        .blood-border { border-color: var(--blood-red); }
+        .blood-bg { background-color: var(--blood-red); }
+        
+        /* Train Animation Background */
+        .train-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), url('https://images.unsplash.com/photo-1515165597730-9835069af994?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.3;
+        }
+
+        .shake { animation: shake 0.5s infinite; }
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #1a1a1a; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--blood-red); border-radius: 10px; }
+
+        .flicker { animation: flicker 3s infinite; }
+        @keyframes flicker {
+            0%, 19.999%, 22%, 62.999%, 64%, 64.999%, 70%, 100% { opacity: 1; }
+            20%, 21.999%, 63%, 63.999%, 65%, 69.999% { opacity: 0.4; }
+        }
+    </style>
+</head>
+<body class="custom-scrollbar">
+    <div class="train-bg"></div>
+
+    <!-- Background Audio Element (Simulated) -->
+    <audio id="bgm" loop>
+        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- Overlay / Loading -->
+    <div id="intro-overlay" class="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-6 text-center">
+        <h1 class="text-6xl font-bold blood-text mb-4 shake">TRTD-4444</h1>
+        <p class="text-xl italic mb-8">"The Road To Death"</p>
+        
+        <div id="login-form" class="w-full max-w-md space-y-4 bg-zinc-900/80 p-8 rounded-lg border border-zinc-800 shadow-2xl">
+            <input type="text" id="username" placeholder="탑승객 닉네임 입력" class="w-full bg-black border border-zinc-700 p-3 rounded focus:outline-none focus:border-red-600">
+            
+            <div class="flex gap-2">
+                <button onclick="login('user')" class="flex-1 bg-zinc-800 hover:bg-zinc-700 p-3 rounded transition font-bold">일반 탑승</button>
+                <button onclick="toggleMCLogin()" class="flex-1 bg-red-900 hover:bg-red-800 p-3 rounded transition font-bold">MC 탑승</button>
+            </div>
+
+            <div id="mc-auth-panel" class="hidden space-y-2 pt-4 border-t border-zinc-800">
+                <input type="password" id="mc-password" placeholder="MC 비밀번호" class="w-full bg-black border border-zinc-700 p-3 rounded focus:outline-none focus:border-red-600">
+                <button onclick="login('mc')" class="w-full blood-bg hover:opacity-80 p-3 rounded transition font-bold">MC 권한 인증</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="app" class="hidden min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="sticky top-0 z-40 bg-black/90 border-b border-red-900 p-4 flex justify-between items-center shadow-lg">
+            <div class="flex items-center gap-4">
+                <h1 class="text-2xl font-bold blood-text tracking-tighter">TRTD-4444</h1>
+                <span id="display-name" class="text-sm bg-zinc-800 px-3 py-1 rounded-full border border-zinc-600"></span>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="toggleAudio()" id="audio-btn" class="p-2 bg-zinc-800 rounded-full hover:bg-zinc-700">
+                    <i data-lucide="volume-2"></i>
+                </button>
+                <button onclick="logout()" class="text-xs text-zinc-400 hover:text-white underline">열차 탈출</button>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="flex overflow-x-auto bg-zinc-900 border-b border-zinc-800 no-scrollbar">
+            <button onclick="showTab('tab-intro')" class="nav-btn px-6 py-3 whitespace-nowrap active border-b-2 border-red-600">인트로</button>
+            <button onclick="showTab('tab-chars')" class="nav-btn px-6 py-3 whitespace-nowrap">인물정보</button>
+            <button onclick="showTab('tab-map')" class="nav-btn px-6 py-3 whitespace-nowrap">열차지도</button>
+            <button onclick="showTab('tab-missions')" class="nav-btn px-6 py-3 whitespace-nowrap">미션/공지</button>
+            <button onclick="showTab('tab-settings')" class="nav-btn px-6 py-3 whitespace-nowrap">메인설정</button>
+            <button onclick="showTab('tab-users')" class="nav-btn px-6 py-3 whitespace-nowrap">탑승객 명단</button>
+            <button id="mc-nav-btn" onclick="showTab('tab-mc')" class="nav-btn px-6 py-3 whitespace-nowrap hidden blood-text font-bold">MC 콘솔</button>
+        </nav>
+
+        <!-- Content Area -->
+        <main class="flex-1 p-4 md:p-8 max-w-6xl mx-auto w-full">
+            
+            <!-- 인트로 탭 -->
+            <section id="tab-intro" class="tab-content active space-y-6">
+                <div class="bg-zinc-900/60 p-6 rounded-xl border border-zinc-800 shadow-xl">
+                    <h2 class="text-3xl font-bold mb-6 blood-text border-l-4 border-red-600 pl-4">죽음으로 향하는 열차</h2>
+                    <div class="prose prose-invert max-w-none text-zinc-300 leading-relaxed space-y-4">
+                        <p class="text-lg flicker">세상에 좀비가 창궐했다...</p>
+                        <p>이런 문장을 들으면 보통 "아 혹시 좀비가 나오는 작품의 첫 문장인가요?" 할 것이다. 뭐 좀비물 보면 대충 대기업 연구소에서 실험 잘못 하다가 좀비 바이러스가 터지는 이야기.</p>
+                        <p class="font-bold text-white">근데.. 그 작품이 우리 현실이고 그 주인공이 우리다. 하...</p>
+                        <p>이 이야기는 하필 전세계랑 이어진 특수한 열차 <span class="blood-text font-bold">TRTD-4444</span>에 탑승한 승객인 여러분은 이제 열차를 타고 다니며 생존해야 됩니다.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 인물 정보 탭 -->
+            <section id="tab-chars" class="tab-content space-y-8">
+                <h2 class="text-3xl font-bold blood-text">열차 탑승 주요 인물</h2>
+                <div id="char-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- JS로 렌더링 -->
+                </div>
+            </section>
+
+            <!-- 열차 지도 탭 -->
+            <section id="tab-map" class="tab-content">
+                <div class="bg-zinc-900/60 p-6 rounded-xl border border-zinc-800">
+                    <h2 class="text-3xl font-bold mb-6 blood-text">열차 구조도 (Train Map)</h2>
+                    <div class="grid grid-cols-1 gap-4">
+                        <div class="flex items-center gap-4 bg-red-900/20 p-4 border border-red-900/30 rounded">
+                            <span class="w-12 h-12 flex items-center justify-center bg-red-900 rounded font-bold">1</span>
+                            <div>
+                                <h4 class="font-bold">기관실 (1칸)</h4>
+                                <p class="text-sm text-zinc-400">열차의 심장. 김진형 기관사 상주 구역.</p>
+                            </div>
+                        </div>
+                        <div id="map-grid" class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <!-- 3칸씩 존재하는 구역들 -->
+                        </div>
+                        <div class="mt-6">
+                            <h4 class="font-bold mb-3">거주 구역 (총 50칸)</h4>
+                            <div class="flex flex-wrap gap-1">
+                                <script>
+                                    for(let i=1; i<=50; i++) {
+                                        let color = i > 30 ? 'bg-red-600' : 'bg-zinc-700';
+                                        let title = i > 30 ? '어금니 점령지' : '생존자 거주지';
+                                        document.write(`<div title="${title}" class="w-6 h-8 ${color} rounded-sm text-[8px] flex items-center justify-center">${i}</div>`);
+                                    }
+                                </script>
+                            </div>
+                            <p class="text-xs mt-3 text-zinc-500">* 31번~50번 칸은 조직 '어금니'가 점령 중입니다.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 미션/공지 탭 -->
+            <section id="tab-missions" class="tab-content space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <h2 class="text-2xl font-bold mb-4 flex items-center gap-2"><i data-lucide="megaphone" class="text-blue-500"></i> 열차 공지사항</h2>
+                        <div id="notice-list" class="space-y-4">
+                            <div class="p-4 bg-zinc-800 rounded border-l-4 border-blue-500">공지가 없습니다.</div>
+                        </div>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold mb-4 flex items-center gap-2"><i data-lucide="crosshair" class="text-red-500"></i> 긴급 미션</h2>
+                        <div id="mission-list" class="space-y-4">
+                            <div class="p-4 bg-zinc-800 rounded border-l-4 border-red-500">현재 활성화된 미션이 없습니다.</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 메인 설정 탭 -->
+            <section id="tab-settings" class="tab-content space-y-6">
+                <div class="bg-zinc-900/80 p-6 rounded-xl border border-zinc-800 shadow-2xl space-y-8">
+                    <div>
+                        <h3 class="text-2xl font-bold blood-text mb-4">면역자들</h3>
+                        <p class="text-zinc-300">좀비에 면역되어(그치만 물리면 면역) 강한 신체능력과 특수한 초능력을 가진 자들이 생겨났다.</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="p-4 bg-black/40 border border-zinc-700 rounded-lg">
+                            <h4 class="font-bold text-red-400 mb-2">탐색대</h4>
+                            <p class="text-sm">면역자들을 모아 여러 물품 및 식자재 등을 모아오는 자들이자 열차의 무력이라 할 수 있으며 치안관리 등 여러 일을 한다.</p>
+                        </div>
+                        <div class="p-4 bg-black/40 border border-zinc-700 rounded-lg">
+                            <h4 class="font-bold text-red-400 mb-2">다이아 바이오</h4>
+                            <p class="text-sm">이 모든 일을 시작한 원인이자 생명 변이 프로젝트로 이 도시를 망친 주범이며 좀비와 면역자들을 탄생시킨 것들도 이들이다.</p>
+                        </div>
+                        <div class="p-4 bg-black/40 border border-zinc-700 rounded-lg">
+                            <h4 class="font-bold text-red-400 mb-2">생명 변이 프로젝트</h4>
+                            <p class="text-sm">정부와 다이아 바이오의 비밀 프로젝트. 생명 변이 및 장애 치료를 위한 실험이었으나 인간성을 삭제하고 식욕과 공격성만 남기는 변이가 발생해 버려 세상은 아포칼립스가 되었다.</p>
+                        </div>
+                        <div class="p-4 bg-black/40 border border-zinc-700 rounded-lg">
+                            <h4 class="font-bold text-red-400 mb-2">어금니</h4>
+                            <p class="text-sm">거주구역 31번부터 50번까지를 점령한 조직이며 탐사대와 매번 부딪히는 이 열차 안에서 생긴 사회의 악의 축이라 할 수 있다.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 탑승객 명단 탭 -->
+            <section id="tab-users" class="tab-content">
+                <h2 class="text-3xl font-bold blood-text mb-6">현재 열차 탑승객</h2>
+                <div class="bg-zinc-900 p-4 rounded-xl border border-zinc-800">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="border-b border-zinc-700">
+                                <th class="p-3">닉네임</th>
+                                <th class="p-3">등급</th>
+                                <th class="p-3">접속 시간</th>
+                            </tr>
+                        </thead>
+                        <tbody id="user-list-body">
+                            <!-- JS Rendering -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- MC 전용 콘솔 -->
+            <section id="tab-mc" class="tab-content space-y-8">
+                <div class="bg-red-950/20 p-6 rounded-xl border border-red-900 shadow-2xl">
+                    <h2 class="text-3xl font-bold blood-text mb-6">MC COMMAND CONSOLE</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- 공지 생성 -->
+                        <div class="space-y-4">
+                            <h3 class="font-bold border-b border-red-900 pb-2">공지 사항 작성</h3>
+                            <input type="text" id="mc-notice-title" placeholder="제목" class="w-full bg-black border border-zinc-700 p-3 rounded text-sm">
+                            <textarea id="mc-notice-content" placeholder="내용" class="w-full bg-black border border-zinc-700 p-3 rounded text-sm h-24"></textarea>
+                            <button onclick="postNotice()" class="w-full bg-blue-700 hover:bg-blue-600 p-3 rounded font-bold">공지 발행</button>
+                        </div>
+
+                        <!-- 미션 생성 -->
+                        <div class="space-y-4">
+                            <h3 class="font-bold border-b border-red-900 pb-2">신규 미션 생성</h3>
+                            <input type="text" id="mc-mission-title" placeholder="미션 제목" class="w-full bg-black border border-zinc-700 p-3 rounded text-sm">
+                            <textarea id="mc-mission-content" placeholder="미션 내용" class="w-full bg-black border border-zinc-700 p-3 rounded text-sm h-24"></textarea>
+                            <input type="text" id="mc-mission-reward" placeholder="보상 내용" class="w-full bg-black border border-zinc-700 p-3 rounded text-sm">
+                            <button onclick="postMission()" class="w-full bg-red-700 hover:bg-red-600 p-3 rounded font-bold">미션 하달</button>
+                        </div>
+
+                        <!-- 돌발 이벤트 생성 -->
+                        <div class="space-y-4 col-span-full">
+                            <h3 class="font-bold border-b border-red-900 pb-2">돌발 이벤트 발생</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-2">
+                                    <input type="text" id="event-title" placeholder="이벤트 제목" class="w-full bg-black border border-zinc-700 p-3 rounded text-sm">
+                                    <textarea id="event-content" placeholder="이벤트 설명 및 발생 위치" class="w-full bg-black border border-zinc-700 p-3 rounded text-sm h-24"></textarea>
+                                </div>
+                                <div class="space-y-2">
+                                    <input type="text" id="event-reward-1" placeholder="1등 보상" class="w-full bg-black border border-zinc-700 p-3 rounded text-sm">
+                                    <input type="text" id="event-reward-all" placeholder="공통 참가 보상" class="w-full bg-black border border-zinc-700 p-3 rounded text-sm">
+                                    <button onclick="triggerEvent()" class="w-full bg-orange-700 hover:bg-orange-600 p-3 rounded font-bold h-24">돌발 이벤트 가동!</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 미션 클리어 처리 -->
+                        <div class="space-y-4 col-span-full bg-black/40 p-4 rounded border border-zinc-800">
+                            <h3 class="font-bold text-green-500">미션 클리어 및 보상 지급</h3>
+                            <div class="flex flex-wrap gap-2">
+                                <input type="text" id="clear-username" placeholder="유저 닉네임" class="flex-1 min-w-[200px] bg-zinc-900 border border-zinc-700 p-3 rounded">
+                                <input type="text" id="clear-reward" placeholder="지급할 아이템/포인트" class="flex-1 min-w-[200px] bg-zinc-900 border border-zinc-700 p-3 rounded">
+                                <button onclick="sendReward()" class="bg-green-700 hover:bg-green-600 px-6 py-3 rounded font-bold">지급</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Chat Area -->
+        <footer class="bg-black border-t border-zinc-800 h-64 flex flex-col">
+            <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar text-sm">
+                <div class="text-zinc-500 italic">[시스템] 열차 채팅 서버에 연결되었습니다.</div>
+            </div>
+            <div class="p-2 bg-zinc-900 flex gap-2">
+                <input type="text" id="chat-input" placeholder="메시지를 입력하세요..." class="flex-1 bg-black border border-zinc-700 px-4 py-2 rounded-full focus:outline-none focus:border-red-600">
+                <button onclick="sendMessage()" class="blood-bg px-4 py-2 rounded-full font-bold">전송</button>
+            </div>
+        </footer>
+    </div>
+
+    <script type="module">
+        // Firebase Configuration (Empty as requested for runtime injection)
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'trtd-4444';
+
+        // Initial Data
+        const characters = [
+            { name: "김진형", gender: "남", role: "기관사", age: 37, tendency: "선", personality: "책임자", power: "C", weapon: "설득 및 중재", items: "확성기", desc: "열차의 총책임자로써 여러 권리 및 권능을 가지고 있습니다. 하지만 평범한 시민들까지 챙길지는 미지수입니다." },
+            { name: "유진성", gender: "남", role: "검술달인", age: 19, tendency: "선", personality: "묵묵함", power: "A (S~SS 성장)", weapon: "검술", items: "검", ability: "바람의 검", desc: "검술 가문 출신. 비리로 선수 자격을 박탈당한 순간 세상이 멸망했습니다. 면역자이며 죽음(좀비)을 베어냅니다." },
+            { name: "이예현", gender: "남", role: "요리사", age: 29, tendency: "선", personality: "자애로움", power: "B", weapon: "없음", items: "요리 도구", desc: "유명 셰프. 주방칸의 총책임자입니다. 식자재를 가져다주면 체력을 채워주거나 특별한 일이 생깁니다." },
+            { name: "마석형", gender: "남", role: "예비 아빠", age: 32, tendency: "선", personality: "거칠다", power: "SS", weapon: "주먹", items: "라이터, 담배, 글러브", ability: "신체강화", desc: "세계관 최강 근력. 전직 조폭이었으나 아내를 만나 개과천선했습니다. 주먹으로 좀비를 죽이는 탐색대 면역자입니다." },
+            { name: "하루여", gender: "여", role: "인플루언서", age: 22, tendency: "혼돈", personality: "너무 착함", power: "D", weapon: "없음", items: "핸드폰, 화장품", desc: "전직 아이돌이자 버튜버. 너무 착해서 가끔씩 일을 일으키는 머리 꽃밭형 인물입니다." },
+            { name: "이로미", gender: "여", role: "연구자", age: 26, tendency: "선", personality: "냉철함", power: "C", weapon: "화학 약품", items: "과학 물품", desc: "다이아 바이오 출신 천재 연구자. 열차의 브레인입니다. 화학 약품을 가져다주면 아이템 제조가 가능합니다." },
+            { name: "아연우", gender: "여", role: "의사", age: 24, tendency: "선", personality: "착함", power: "D", weapon: "주사기(투척)", items: "의료약품", ability: "새크리파이스", desc: "의료실칸 총책임자. 부상자를 치료하는 중요한 역할의 면역자입니다." },
+            { name: "창준섭", gender: "남", role: "싸이코패스", age: 25, tendency: "악", personality: "절대악", power: "S (광기 시 SS)", weapon: "나이프 파이팅", items: "나이프, 기름통", ability: "흑안개", desc: "어금니 5간부 서열 4위 '사신'. 살인에 희열을 느끼는 잭 더 리퍼의 후손이자 면역자입니다." },
+            { name: "김민우", gender: "남", role: "특수부대원", age: 29, tendency: "중립", personality: "철저함", power: "SS", weapon: "총술, 무술", items: "M16, 탄환", ability: "ERROR", desc: "탐색대 대장이자 면역자. 실전과 생존에 특화된 강한 전투력을 가졌습니다." },
+            { name: "이한준", gender: "남", role: "방화범", age: 17, tendency: "선", personality: "명쾌함", power: "S", weapon: "주먹과 불", items: "라이터", ability: "불사조", desc: "과거의 실수를 속죄하며 동료를 위해 웃는 분위기 메이커. 탐색대 선봉이자 면역자입니다." },
+            { name: "우현진", gender: "남", role: "어금니 보스", age: 34, tendency: "악", personality: "생존악", power: "SS", weapon: "장검술", items: "약물 등", ability: "중력 제어", desc: "어금니 리더 서열 1위 '비스트'. 압도적 무력과 치밀함을 가졌습니다. 마석형과 구원이 있는 듯합니다." },
+            { name: "호반연", gender: "남", role: "웃는 남자", age: 24, tendency: "악/혼돈", personality: "수상함", power: "S", weapon: "선동", items: "강철실", ability: "환각", desc: "어금니 5간부 서열 3위 '로키'. 실눈의 수상한 남자이며 이로미와 관계가 있는 듯합니다." },
+            { name: "광예선", gender: "여", role: "광녀", age: 19, tendency: "악", personality: "전투광", power: "S", weapon: "대낫", items: "대낫", ability: "혈계강화", desc: "어금니 5간부 5위 '피의 광녀'. 부잣집 아가씨 출신으로 죽음을 두려워하지 않는 미치광이입니다." },
+            { name: "금강혁", gender: "남", role: "낭만주의자", age: 22, tendency: "혼돈", personality: "낭만주의", power: "SS", weapon: "주먹", items: "안경", ability: "공허", desc: "어금니 5간부 2위 '보이드'. 재미가 전부인 도파민 노예로 아군 적군 가리지 않고 공격합니다." }
+        ];
+
+        const mapAreas = ["VVP실", "훈련실", "주방", "창고", "무기고", "연구실", "상점가", "재배실", "재판실", "탐색대 본부"];
+
+        // State
+        let currentUser = null;
+        let isMC = false;
+
+        // Global functions
+        window.toggleMCLogin = () => {
+            const panel = document.getElementById('mc-auth-panel');
+            panel.classList.toggle('hidden');
+        };
+
+        window.login = (mode) => {
+            const name = document.getElementById('username').value.trim();
+            if(!name) return alert('닉네임을 입력해주세요.');
+
+            if(mode === 'mc') {
+                const pass = document.getElementById('mc-password').value;
+                if(pass !== 'NBVX5435') return alert('비밀번호가 틀렸습니다.');
+                isMC = true;
+                document.getElementById('mc-nav-btn').classList.remove('hidden');
+            }
+
+            currentUser = { name, role: isMC ? 'MC' : 'Passenger', time: new Date().toLocaleTimeString() };
+            document.getElementById('display-name').innerText = `[${currentUser.role}] ${currentUser.name}`;
+            document.getElementById('intro-overlay').classList.add('hidden');
+            document.getElementById('app').classList.remove('hidden');
+            
+            // Add to User List
+            addUserToList(currentUser);
+            systemMessage(`${name}님이 열차에 탑승했습니다.`);
+            
+            lucide.createIcons();
+        };
+
+        window.logout = () => location.reload();
+
+        window.showTab = (tabId) => {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active', 'border-b-2', 'border-red-600'));
+            
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active', 'border-b-2', 'border-red-600');
+        };
+
+        window.toggleAudio = () => {
+            const bgm = document.getElementById('bgm');
+            const btn = document.getElementById('audio-btn');
+            if (bgm.paused) {
+                bgm.play();
+                btn.innerHTML = '<i data-lucide="volume-2"></i>';
+            } else {
+                bgm.pause();
+                btn.innerHTML = '<i data-lucide="volume-x"></i>';
+            }
+            lucide.createIcons();
+        };
+
+        window.sendMessage = () => {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if(!text) return;
+            
+            appendChat(currentUser.name, text, isMC ? 'text-red-400 font-bold' : '');
+            input.value = '';
+        };
+
+        // UI Rendering
+        function renderCharacters() {
+            const container = document.getElementById('char-list');
+            characters.forEach(c => {
+                const div = document.createElement('div');
+                div.className = "bg-zinc-800/80 border border-zinc-700 p-5 rounded-lg hover:border-red-600 transition duration-300 group";
+                div.innerHTML = `
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="text-xl font-bold group-hover:blood-text">${c.name} (${c.gender})</h3>
+                        <span class="text-xs px-2 py-1 bg-zinc-900 border border-zinc-600 rounded">${c.role}</span>
+                    </div>
+                    <div class="grid grid-cols-2 text-xs gap-y-1 mb-4 text-zinc-400">
+                        <div><span class="text-zinc-500">성향:</span> ${c.tendency}</div>
+                        <div><span class="text-zinc-500">나이:</span> ${c.age}</div>
+                        <div><span class="text-zinc-500">전투력:</span> <span class="text-red-500 font-bold">${c.power}</span></div>
+                        <div><span class="text-zinc-500">주무기:</span> ${c.weapon}</div>
+                    </div>
+                    <p class="text-sm text-zinc-300 line-clamp-3">${c.desc}</p>
+                    ${c.ability ? `<div class="mt-3 text-xs blood-text font-bold">[각성: ${c.ability}]</div>` : ''}
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function renderMap() {
+            const container = document.getElementById('map-grid');
+            mapAreas.forEach(area => {
+                const div = document.createElement('div');
+                div.className = "p-3 bg-zinc-800 border border-zinc-700 rounded text-center";
+                div.innerHTML = `
+                    <div class="font-bold text-sm">${area}</div>
+                    <div class="text-[10px] text-zinc-500">각 3개 칸 존재</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function appendChat(name, msg, colorClass = '') {
+            const chat = document.getElementById('chat-messages');
+            const div = document.createElement('div');
+            div.className = "animate-fade-in";
+            div.innerHTML = `<span class="font-bold text-zinc-400">${name}:</span> <span class="${colorClass}">${msg}</span>`;
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function systemMessage(msg) {
+            appendChat('SYSTEM', msg, 'text-zinc-500 italic');
+        }
+
+        function addUserToList(user) {
+            const tbody = document.getElementById('user-list-body');
+            const tr = document.createElement('tr');
+            tr.className = "border-b border-zinc-800 hover:bg-zinc-800/50";
+            tr.innerHTML = `
+                <td class="p-3 font-bold ${user.role === 'MC' ? 'blood-text' : ''}">${user.name}</td>
+                <td class="p-3 text-sm">${user.role}</td>
+                <td class="p-3 text-xs text-zinc-500">${user.time}</td>
+            `;
+            tbody.appendChild(tr);
+        }
+
+        // MC Functions
+        window.postNotice = () => {
+            const title = document.getElementById('mc-notice-title').value;
+            const content = document.getElementById('mc-notice-content').value;
+            if(!title || !content) return;
+            
+            const list = document.getElementById('notice-list');
+            if(list.innerText.includes('없습니다')) list.innerHTML = '';
+            
+            const div = document.createElement('div');
+            div.className = "p-4 bg-zinc-800 rounded border-l-4 border-blue-500 animate-bounce";
+            div.innerHTML = `<h4 class="font-bold text-blue-400">${title}</h4><p class="text-sm mt-1">${content}</p>`;
+            list.prepend(div);
+            systemMessage(`[공지] ${title}`);
+        };
+
+        window.postMission = () => {
+            const title = document.getElementById('mc-mission-title').value;
+            const content = document.getElementById('mc-mission-content').value;
+            const reward = document.getElementById('mc-mission-reward').value;
+            if(!title || !content) return;
+
+            const list = document.getElementById('mission-list');
+            if(list.innerText.includes('없습니다')) list.innerHTML = '';
+            
+            const div = document.createElement('div');
+            div.className = "p-4 bg-zinc-800 rounded border-l-4 border-red-500 shake";
+            div.innerHTML = `
+                <h4 class="font-bold text-red-500">${title}</h4>
+                <p class="text-sm mt-1">${content}</p>
+                <div class="mt-2 text-xs text-yellow-500 font-bold">보상: ${reward}</div>
+            `;
+            list.prepend(div);
+            systemMessage(`[긴급 미션] ${title} - 선착순 탑승객 모집!`);
+        };
+
+        window.triggerEvent = () => {
+            const title = document.getElementById('event-title').value;
+            const content = document.getElementById('event-content').value;
+            if(!title || !content) return;
+            
+            const alertDiv = document.createElement('div');
+            alertDiv.className = "fixed top-20 left-1/2 -translate-x-1/2 bg-orange-600 text-white px-8 py-4 rounded-full font-bold z-50 shake shadow-2xl border-4 border-white";
+            alertDiv.innerText = `🚨 돌발 이벤트 발생: ${title} 🚨`;
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => alertDiv.remove(), 5000);
+            systemMessage(`[돌발 이벤트] ${title} 발생! 기여도에 따라 보상이 지급됩니다.`);
+        };
+
+        window.sendReward = () => {
+            const name = document.getElementById('clear-username').value;
+            const reward = document.getElementById('clear-reward').value;
+            if(!name || !reward) return;
+            
+            systemMessage(`${name}님에게 미션 클리어 보상 [${reward}]이(가) 지급되었습니다!`);
+        };
+
+        // Initialize
+        window.onload = () => {
+            renderCharacters();
+            renderMap();
+            lucide.createIcons();
+            
+            // Enter key for chat
+            document.getElementById('chat-input').addEventListener('keypress', (e) => {
+                if(e.key === 'Enter') sendMessage();
+            });
+        };
+    </script>
+</body>
+</html>
+
